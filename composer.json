@@ -1,0 +1,30 @@
+{
+    "name": "monii/aggregate-event-storage-dbal",
+    "description": "Doctrine DBAL implementation of Monii's Aggregate Event Storage",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Beau Simensen",
+            "email": "beau@dflydev.com"
+        }
+    ],
+    "require": {
+        "doctrine/dbal": "^2.5",
+        "monii/aggregate-event-storage": "dev-master"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^4.7",
+        "squizlabs/php_codesniffer": "^2.3"
+    },
+    "repositories": {
+        "monii-aggregate-event-storage": {
+            "type": "vcs",
+            "url": "https://github.com/monii/monii-aggregate-event-storage"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "0.0.x-dev"
+        }
+    }
+}
