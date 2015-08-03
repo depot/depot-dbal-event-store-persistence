@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "92a0ca39413b5b03de56e8ee33947f14",
+    "hash": "bcfdffc2464b43886376197ef5a7d35d",
     "packages": [
         {
             "name": "doctrine/annotations",
@@ -481,12 +481,12 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:monii/monii-aggregate-event-storage.git",
-                "reference": "2b05f03ca2d4e62c62448f152f676d7573b8ea67"
+                "reference": "0ae3062f670eb87f7829bb0a3f899b2bd6800536"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/monii/monii-aggregate-event-storage/zipball/2b05f03ca2d4e62c62448f152f676d7573b8ea67",
-                "reference": "2b05f03ca2d4e62c62448f152f676d7573b8ea67",
+                "url": "https://api.github.com/repos/monii/monii-aggregate-event-storage/zipball/0ae3062f670eb87f7829bb0a3f899b2bd6800536",
+                "reference": "0ae3062f670eb87f7829bb0a3f899b2bd6800536",
                 "shasum": ""
             },
             "require-dev": {
@@ -495,6 +495,11 @@
                 "squizlabs/php_codesniffer": "^2.3"
             },
             "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "0.0.x-dev"
+                }
+            },
             "autoload": {
                 "psr-4": {
                     "Monii\\AggregateEventStorage\\": "src/Monii/AggregateEventStorage"
@@ -519,7 +524,7 @@
                 "source": "https://github.com/monii/monii-aggregate-event-storage/tree/master",
                 "issues": "https://github.com/monii/monii-aggregate-event-storage/issues"
             },
-            "time": "2015-08-03 12:15:41"
+            "time": "2015-08-03 12:47:46"
         }
     ],
     "packages-dev": [
@@ -583,20 +588,25 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:monii/monii-aggregate-event-storage-testing.git",
-                "reference": "b4171687d90635da02f34e8934b3826dae9640aa"
+                "reference": "fe9f1f5cbaceadc347b9ab2a92f483db1cfd6cf3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/monii/monii-aggregate-event-storage-testing/zipball/b4171687d90635da02f34e8934b3826dae9640aa",
-                "reference": "b4171687d90635da02f34e8934b3826dae9640aa",
+                "url": "https://api.github.com/repos/monii/monii-aggregate-event-storage-testing/zipball/fe9f1f5cbaceadc347b9ab2a92f483db1cfd6cf3",
+                "reference": "fe9f1f5cbaceadc347b9ab2a92f483db1cfd6cf3",
                 "shasum": ""
             },
             "require-dev": {
-                "monii/aggregate-event-storage": "dev-master",
+                "monii/aggregate-event-storage": "^0.0@dev",
                 "phpunit/phpunit": "^4.7",
                 "squizlabs/php_codesniffer": "^2.3"
             },
             "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "0.0.x-dev"
+                }
+            },
             "autoload": {
                 "psr-4": {
                     "Monii\\AggregateEventStorage\\": "src/Monii/AggregateEventStorage"
@@ -616,7 +626,7 @@
                 "source": "https://github.com/monii/monii-aggregate-event-storage-testing/tree/master",
                 "issues": "https://github.com/monii/monii-aggregate-event-storage-testing/issues"
             },
-            "time": "2015-08-03 12:01:15"
+            "time": "2015-08-03 13:05:47"
         },
         {
             "name": "phpdocumentor/reflection-docblock",
