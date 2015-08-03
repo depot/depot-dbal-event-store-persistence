@@ -87,12 +87,8 @@ class DbalPersistence implements Persistence
         return $table;
     }
 
-    public function fetch(Contract $aggregateType = null, $aggregateId = null)
+    public function fetch(Contract $aggregateType, $aggregateId)
     {
-        if (is_null($aggregateType) || is_null($aggregateId)) {
-            return false;
-        }
-
         $eventEnvelopes = [];
 
         $row = $this->findByAggregateTypeAndId($aggregateType, $aggregateId);
