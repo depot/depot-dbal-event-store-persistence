@@ -2,11 +2,15 @@
 
 namespace Monii\AggregateEventStorage\EventStore\Persistence\Adapter\Dbal;
 
+use Monii\AggregateEventStorage\Contract\Contract;
+use Monii\AggregateEventStorage\EventStore\Transaction\CommitId;
+use Monii\AggregateEventStorage\EventStore\EventEnvelope;
+use Monii\AggregateEventStorage\EventStore\Serialization\Serializer;
 use Monii\AggregateEventStorage\EventStore\Persistence\Persistence;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Connection;
 
-class DbalPersistence
+class DbalPersistence implements Persistence
 {
     /**
      * @param $connection
@@ -64,23 +68,83 @@ class DbalPersistence
         return $table;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function save(Persistence $persistence)
+    public function fetch(Contract $aggregateType = null, $aggregateId = null)
     {
-        $values = array(
-            'commit_id' => $persistence->commitId,
-            'utc_committed_time' => $persistence->utcCommittedTime,
-            'aggregate_type' => $persistence->aggregateType,
-            'aggregate_id' => $persistence->aggregateId,
-            'aggregate_version' => $persistence->aggregateVersion,
-            'event_type' => $persistence->eventType,
-            'event_id' => $persistence->eventId,
-            'event' => $persistence->event,
-            'metadata_type' => $persistence->metadataType,
-            'metadata' => $persistence->metadata
-        );
-        $this->connection->insert($this->tableName, $values);
+        if (is_null($aggregateType) || is_null($aggregateId)) {
+            return;
+        }
+
+        $eventEnvelopes = [];
+
+        $row = $this->findByAggregateTypeAndId($aggregateType, $aggregateId);
+
+        foreach ($row as $record) {
+
+            $eventEnvelopes[] = new EventEnvelope(
+                $record->eventType,
+                $record->eventId,
+                $this->eventSerializer->deserialize($record->eventType, $record->event),
+                $record->metadataType,
+                $record->metadataType
+                    ? $this->metadataSerializer->deserialize($record->metadataType, $record->metadata)
+                    : null
+            );
+
+        }
+
+        return $eventEnvelopes;
+    }
+
+    /**
+     * @param CommitId $commitId
+     * @param Contract $aggregateType
+     * @param string $aggregateId
+     * @param int $expectedAggregateVersion
+     * @param EventEnvelope[] $eventEnvelopes
+     */
+    public function commit(
+        CommitId $commitId,
+        Contract $aggregateType,
+        $aggregateId,
+        $expectedAggregateVersion,
+        array $eventEnvelopes
+    )
+    {
+        $aggregateVersion = $expectedAggregateVersion;
+
+        // Todo: Add transaction / rollback on exception
+
+        foreach ($eventEnvelopes as $eventEnvelope) {
+
+            $values = array(
+                'commit_id' => $commitId,
+                'utc_committed_time' => new \DateTimeImmutable('now'),
+                'aggregate_type' => $aggregateType,
+                'aggregate_id' => $aggregateId,
+                'aggregate_version' => ++$aggregateVersion,
+                'event_type' => $eventEnvelope->getEventType(),
+                'event_id' => $eventEnvelope->getEventId(),
+                'event' => $this->eventSerializer->serialize($eventEnvelope->getEventType(), $eventEnvelope->getEvent()),
+                'metadata_type' => $eventEnvelope->getMetadataType(),
+                'metadata' => (
+                $eventEnvelope->getMetadataType()
+                    ? $this->metadataSerializer->serialize($eventEnvelope->getMetadataType(), $eventEnvelope->getMetadata())
+                    : null
+                )
+            );
+            $this->connection->insert($this->tableName, $values);
+
+        }
+    }
+
+    private function findByAggregateTypeAndId($aggregateType, $aggregateId)
+    {
+        $query = 'SELECT * FROM '.$this->tableName.' WHERE aggregate_type = :aggregateType AND aggregate_id = :aggregateId ORDER BY utc_committed_time';
+        $statement = $this->connection->prepare($query);
+        $statement->bindValue(':aggregateType', $aggregateType);
+        $statement->bindValue(':aggregateId', $aggregateId);
+        $statement->execute();
+        $result = $statement->fetch();
+        return $result;
     }
 }
