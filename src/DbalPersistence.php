@@ -47,6 +47,7 @@ class DbalPersistence
 
         $schema = new Schema();
         $table = $schema->createTable($this->tableName);
+        $table->addColumn('committed_event_id', 'int', ["unsigned" => true, "autoincrement" => true]);
         $table->addColumn('commit_id', $uuidType, $uuidParams);
         $table->addColumn('utc_committed_time', 'datetime');
         $table->addColumn('aggregate_type', 'string', $stringParams);
@@ -57,6 +58,7 @@ class DbalPersistence
         $table->addColumn('event', 'text');
         $table->addColumn('metadata_type', 'string', $stringParams);
         $table->addColumn('metadata', 'text');
+        $table->setPrimaryKey(['committed_event_id']);
         $table->setIndex(['aggregate_type', 'aggregate_id', 'aggregate_version']);
 
         return $table;
