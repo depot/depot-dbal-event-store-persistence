@@ -57,7 +57,7 @@ class DbalPersistence
         $table->addColumn('event', 'text');
         $table->addColumn('metadata_type', 'string', $stringParams);
         $table->addColumn('metadata', 'text');
-        $table->setIndex(['aggregate_type', 'aggregate_id', 'aggregate_version'], 'aggregate');
+        $table->setIndex(['aggregate_type', 'aggregate_id', 'aggregate_version']);
 
         return $table;
     }
