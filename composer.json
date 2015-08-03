@@ -14,12 +14,17 @@
     },
     "require-dev": {
         "phpunit/phpunit": "^4.7",
-        "squizlabs/php_codesniffer": "^2.3"
+        "squizlabs/php_codesniffer": "^2.3",
+        "monii/aggregate-event-storage-testing": "dev-master"
     },
     "repositories": {
         "monii-aggregate-event-storage": {
             "type": "vcs",
             "url": "https://github.com/monii/monii-aggregate-event-storage"
+        },
+        "monii-aggregate-event-storage-testing": {
+            "type": "vcs",
+            "url": "https://github.com/monii/monii-aggregate-event-storage-testing"
         }
     },
     "extra": {
