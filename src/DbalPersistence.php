@@ -90,7 +90,7 @@ class DbalPersistence implements Persistence
     public function fetch(Contract $aggregateType = null, $aggregateId = null)
     {
         if (is_null($aggregateType) || is_null($aggregateId)) {
-            return;
+            return false;
         }
 
         $eventEnvelopes = [];
@@ -158,7 +158,7 @@ class DbalPersistence implements Persistence
 
     private function findByAggregateTypeAndId($aggregateType, $aggregateId)
     {
-        $query = 'SELECT * FROM '.$this->tableName.' WHERE aggregate_type = :aggregateType AND aggregate_id = :aggregateId ORDER BY utc_committed_time';
+        $query = 'SELECT * FROM '.$this->tableName.' WHERE aggregate_type = :aggregateType AND aggregate_id = :aggregateId';
         $statement = $this->connection->prepare($query);
         $statement->bindValue(':aggregateType', $aggregateType);
         $statement->bindValue(':aggregateId', $aggregateId);
