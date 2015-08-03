@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "bcfdffc2464b43886376197ef5a7d35d",
+    "hash": "72c8505c0d1864891edc01986bbc2da9",
     "packages": [
         {
             "name": "doctrine/annotations",
@@ -481,16 +481,16 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:monii/monii-aggregate-event-storage.git",
-                "reference": "0ae3062f670eb87f7829bb0a3f899b2bd6800536"
+                "reference": "47369bd3967aa6218d6b719f01f8579b465a0fce"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/monii/monii-aggregate-event-storage/zipball/0ae3062f670eb87f7829bb0a3f899b2bd6800536",
-                "reference": "0ae3062f670eb87f7829bb0a3f899b2bd6800536",
+                "url": "https://api.github.com/repos/monii/monii-aggregate-event-storage/zipball/47369bd3967aa6218d6b719f01f8579b465a0fce",
+                "reference": "47369bd3967aa6218d6b719f01f8579b465a0fce",
                 "shasum": ""
             },
             "require-dev": {
-                "monii/aggregate-event-storage-testing": "dev-master",
+                "monii/aggregate-event-storage-testing": "^0.0@dev",
                 "phpunit/phpunit": "^4.7",
                 "squizlabs/php_codesniffer": "^2.3"
             },
@@ -524,7 +524,7 @@
                 "source": "https://github.com/monii/monii-aggregate-event-storage/tree/master",
                 "issues": "https://github.com/monii/monii-aggregate-event-storage/issues"
             },
-            "time": "2015-08-03 12:47:46"
+            "time": "2015-08-03 17:20:24"
         }
     ],
     "packages-dev": [
