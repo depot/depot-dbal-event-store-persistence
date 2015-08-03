@@ -481,12 +481,12 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:monii/monii-aggregate-event-storage.git",
-                "reference": "a3a1231d9c13e91f9b8afa5e3ad8106bff2e8e11"
+                "reference": "47369bd3967aa6218d6b719f01f8579b465a0fce"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/monii/monii-aggregate-event-storage/zipball/a3a1231d9c13e91f9b8afa5e3ad8106bff2e8e11",
-                "reference": "a3a1231d9c13e91f9b8afa5e3ad8106bff2e8e11",
+                "url": "https://api.github.com/repos/monii/monii-aggregate-event-storage/zipball/47369bd3967aa6218d6b719f01f8579b465a0fce",
+                "reference": "47369bd3967aa6218d6b719f01f8579b465a0fce",
                 "shasum": ""
             },
             "require-dev": {
@@ -524,7 +524,7 @@
                 "source": "https://github.com/monii/monii-aggregate-event-storage/tree/master",
                 "issues": "https://github.com/monii/monii-aggregate-event-storage/issues"
             },
-            "time": "2015-08-03 13:12:30"
+            "time": "2015-08-03 17:20:24"
         }
     ],
     "packages-dev": [
