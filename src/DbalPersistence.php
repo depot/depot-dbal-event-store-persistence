@@ -70,19 +70,19 @@ class DbalPersistence implements Persistence
 
         $schema = new Schema();
         $table = $schema->createTable($this->tableName);
-        $table->addColumn('committed_event_id', 'int', ["unsigned" => true, "autoincrement" => true]);
+        $table->addColumn('committed_event_id', 'integer', ["unsigned" => true, "autoincrement" => true]);
         $table->addColumn('commit_id', $uuidType, $uuidParams);
         $table->addColumn('utc_committed_time', 'datetime');
         $table->addColumn('aggregate_type', 'string', $stringParams);
         $table->addColumn('aggregate_id', $uuidType, $uuidParams);
-        $table->addColumn('aggregate_version', 'int');
+        $table->addColumn('aggregate_version', 'integer');
         $table->addColumn('event_type', 'string', $stringParams);
         $table->addColumn('event_id', $uuidType, $uuidParams);
         $table->addColumn('event', 'text');
         $table->addColumn('metadata_type', 'string', $stringParams);
         $table->addColumn('metadata', 'text');
         $table->setPrimaryKey(['committed_event_id']);
-        $table->setIndex(['aggregate_type', 'aggregate_id', 'aggregate_version']);
+        $table->addIndex(['aggregate_type', 'aggregate_id', 'aggregate_version']);
 
         return $table;
     }
