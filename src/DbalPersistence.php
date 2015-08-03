@@ -3,6 +3,7 @@
 namespace Monii\AggregateEventStorage\EventStore\Persistence\Adapter\Dbal;
 
 use Monii\AggregateEventStorage\Contract\Contract;
+use Monii\AggregateEventStorage\Contract\ContractResolver;
 use Monii\AggregateEventStorage\EventStore\Transaction\CommitId;
 use Monii\AggregateEventStorage\EventStore\EventEnvelope;
 use Monii\AggregateEventStorage\EventStore\Serialization\Serializer;
@@ -12,6 +13,16 @@ use Doctrine\DBAL\Connection;
 
 class DbalPersistence implements Persistence
 {
+    /**
+     * @var ContractResolver
+     */
+    private $eventContractResolver;
+
+    /**
+     * @var ContractResolver
+     */
+    private $metadataContractResolver;
+
     /**
      * @var Serializer
      */
@@ -27,18 +38,24 @@ class DbalPersistence implements Persistence
      * @param $tableName
      * @param $eventSerializer
      * @param $metadataSerializer
+     * @param $eventContractResolver
+     * @param $metadataContractResolver
      */
     public function __construct(
         Connection $connection,
         $tableName = 'event',
         Serializer $eventSerializer,
-        Serializer $metadataSerializer
+        Serializer $metadataSerializer,
+        ContractResolver $eventContractResolver,
+        ContractResolver $metadataContractResolver
     )
     {
         $this->connection = $connection;
         $this->tableName = $tableName;
         $this->eventSerializer = $eventSerializer;
         $this->metadataSerializer = $metadataSerializer;
+        $this->eventContractResolver = $eventContractResolver;
+        $this->metadataContractResolver = $metadataContractResolver;
     }
 
     /**
@@ -79,8 +96,8 @@ class DbalPersistence implements Persistence
         $table->addColumn('event_type', 'string', $stringParams);
         $table->addColumn('event_id', $uuidType, $uuidParams);
         $table->addColumn('event', 'text');
-        $table->addColumn('metadata_type', 'string', $stringParams);
-        $table->addColumn('metadata', 'text');
+        $table->addColumn('metadata_type', 'string', array_merge($stringParams, ['notnull' => false]));
+        $table->addColumn('metadata', 'text', ['notnull' => false]);
         $table->setPrimaryKey(['committed_event_id']);
         $table->addIndex(['aggregate_type', 'aggregate_id', 'aggregate_version']);
 
@@ -91,17 +108,27 @@ class DbalPersistence implements Persistence
     {
         $eventEnvelopes = [];
 
-        $row = $this->findByAggregateTypeAndId($aggregateType, $aggregateId);
+        $result = $this->findByAggregateTypeAndId($aggregateType, $aggregateId);
+//print_r($result); die();
+        while ($record = $result->fetch()) {
+            //print_r($record);
+            $event = json_decode($record['event'], TRUE);
+            $metadata = $record['metadata_type']
+                ? json_decode($record['metadata'], TRUE)
+                : null;
 
-        foreach ($row as $record) {
+            $eventType = $this->eventContractResolver->resolveFromContractName($record['event_type']);
+            $metadataType = $record['metadata_type']
+                ? $this->metadataContractResolver->resolveFromContractName($record['metadata_type'])
+                : null;
 
             $eventEnvelopes[] = new EventEnvelope(
-                $record->eventType,
-                $record->eventId,
-                $this->eventSerializer->deserialize($record->eventType, $record->event),
-                $record->metadataType,
-                $record->metadataType
-                    ? $this->metadataSerializer->deserialize($record->metadataType, $record->metadata)
+                $eventType,
+                $record['event_id'],
+                $this->eventSerializer->deserialize($eventType, $event),
+                $metadataType,
+                $metadata
+                    ? $this->metadataSerializer->deserialize($metadataType, metadata)
                     : null
             );
 
@@ -129,21 +156,25 @@ class DbalPersistence implements Persistence
 
         // Todo: Add transaction / rollback on exception
 
+        $utcCommittedTime = new \DateTimeImmutable('now');
+
         foreach ($eventEnvelopes as $eventEnvelope) {
 
             $values = array(
                 'commit_id' => $commitId,
-                'utc_committed_time' => new \DateTimeImmutable('now'),
-                'aggregate_type' => $aggregateType,
+                'utc_committed_time' => $utcCommittedTime->format('Y-m-d H:i:s'),
+                'aggregate_type' => $aggregateType->getContractName(),
                 'aggregate_id' => $aggregateId,
                 'aggregate_version' => ++$aggregateVersion,
-                'event_type' => $eventEnvelope->getEventType(),
+                'event_type' => $eventEnvelope->getEventType()->getContractName(),
                 'event_id' => $eventEnvelope->getEventId(),
-                'event' => $this->eventSerializer->serialize($eventEnvelope->getEventType(), $eventEnvelope->getEvent()),
-                'metadata_type' => $eventEnvelope->getMetadataType(),
+                'event' => json_encode($this->eventSerializer->serialize($eventEnvelope->getEventType(), $eventEnvelope->getEvent())),
+                'metadata_type' => $eventEnvelope->getMetadataType()
+                    ? $eventEnvelope->getMetadataType()->getContractName()
+                    : null,
                 'metadata' => (
                 $eventEnvelope->getMetadataType()
-                    ? $this->metadataSerializer->serialize($eventEnvelope->getMetadataType(), $eventEnvelope->getMetadata())
+                    ? json_decode($this->metadataSerializer->serialize($eventEnvelope->getMetadataType(), $eventEnvelope->getMetadata()))
                     : null
                 )
             );
@@ -154,12 +185,12 @@ class DbalPersistence implements Persistence
 
     private function findByAggregateTypeAndId($aggregateType, $aggregateId)
     {
-        $query = 'SELECT * FROM '.$this->tableName.' WHERE aggregate_type = :aggregateType AND aggregate_id = :aggregateId';
+        $query = "SELECT * FROM ".$this->tableName." WHERE aggregate_type = :aggregateType AND aggregate_id = :aggregateId ORDER BY aggregate_version";
         $statement = $this->connection->prepare($query);
-        $statement->bindValue(':aggregateType', $aggregateType);
-        $statement->bindValue(':aggregateId', $aggregateId);
+        $statement->bindValue('aggregateType', $aggregateType->getContractName());
+        $statement->bindValue('aggregateId', $aggregateId);
         $statement->execute();
-        $result = $statement->fetch();
-        return $result;
+        //$result = $statement->fetch();
+        return $statement;
     }
 }

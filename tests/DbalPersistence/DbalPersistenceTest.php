@@ -11,8 +11,6 @@ use Monii\AggregateEventStorage\EventStore\Persistence\Adapter\Dbal\DbalPersiste
 
 class DbalPersistenceTest extends PersistenceTest
 {
-    private $connection;
-
     private $dbalPersistence;
 
     protected function createPersistence()
@@ -21,21 +19,26 @@ class DbalPersistenceTest extends PersistenceTest
             new SimplePhpFqcnContractResolver()
         );
 
-        $this->connection = $this->getConnection();
+        $contractResolver = new SimplePhpFqcnContractResolver();
 
-        $schemaManager = $this->connection->getSchemaManager();
+        $connection = $this->getConnection();
+
+        $schemaManager = $connection->getSchemaManager();
         $schema = $schemaManager->createSchema();
 
-        //$dbalPersistence = $this->createPersistence();
-        //
-
         $this->dbalPersistence = new DbalPersistence(
-            $this->connection,
+            $connection,
             'event',
             $serializer,
-            $serializer
+            $serializer,
+            $contractResolver,
+            $contractResolver
         );
-        $this->dbalPersistence->configureSchema($schema);
+        $table = $this->dbalPersistence->configureSchema($schema);
+
+        if ($table) {
+            $schemaManager->createTable($table);
+        }
 
         return $this->dbalPersistence;
     }
@@ -51,13 +54,9 @@ class DbalPersistenceTest extends PersistenceTest
      */
     private function getConnection()
     {
-        if ($this->connection) {
-            return $this->connection;
-        }
-        $this->connection = DriverManager::getConnection([
+        return  DriverManager::getConnection([
             'driver' => 'pdo_sqlite',
             'memory' => true
         ]);
-        return $this->connection;
     }
 }
