@@ -13,13 +13,32 @@ use Doctrine\DBAL\Connection;
 class DbalPersistence implements Persistence
 {
     /**
+     * @var Serializer
+     */
+    private $eventSerializer;
+
+    /**
+     * @var Serializer
+     */
+    private $metadataSerializer;
+
+    /**
      * @param $connection
      * @param $tableName
+     * @param $eventSerializer
+     * @param $metadataSerializer
      */
-    public function __construct(Connection $connection, $tableName = 'event')
+    public function __construct(
+        Connection $connection,
+        $tableName = 'event',
+        Serializer $eventSerializer,
+        Serializer $metadataSerializer
+    )
     {
         $this->connection = $connection;
         $this->tableName = $tableName;
+        $this->eventSerializer = $eventSerializer;
+        $this->metadataSerializer = $metadataSerializer;
     }
 
     /**
