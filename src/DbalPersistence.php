@@ -174,7 +174,7 @@ class DbalPersistence implements Persistence
                     : null,
                 'metadata' => (
                 $eventEnvelope->getMetadataType()
-                    ? json_decode($this->metadataSerializer->serialize($eventEnvelope->getMetadataType(), $eventEnvelope->getMetadata()))
+                    ? json_encode($this->metadataSerializer->serialize($eventEnvelope->getMetadataType(), $eventEnvelope->getMetadata()))
                     : null
                 )
             );
