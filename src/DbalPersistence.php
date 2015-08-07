@@ -213,7 +213,9 @@ class DbalPersistence implements Persistence
     {
         $version = -1;
 
-        foreach ($this->findByAggregateTypeAndId($aggregateType, $aggregateId) as $row) {
+        $result = $this->findByAggregateTypeAndId($aggregateType, $aggregateId);
+
+        while ($row = $result->fetch()) {
             if ($row['aggregate_version'] > $version) {
                 $version = $row['aggregate_version'];
             }
