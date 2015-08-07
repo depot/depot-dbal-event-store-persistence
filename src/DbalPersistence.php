@@ -4,6 +4,7 @@ namespace Monii\AggregateEventStorage\EventStore\Persistence\Adapter\Dbal;
 
 use Monii\AggregateEventStorage\Contract\Contract;
 use Monii\AggregateEventStorage\Contract\ContractResolver;
+use Monii\AggregateEventStorage\EventStore\Persistence\OptimisticConcurrencyFailed;
 use Monii\AggregateEventStorage\EventStore\Transaction\CommitId;
 use Monii\AggregateEventStorage\EventStore\EventEnvelope;
 use Monii\AggregateEventStorage\EventStore\Serialization\Serializer;
@@ -13,6 +14,11 @@ use Doctrine\DBAL\Connection;
 
 class DbalPersistence implements Persistence
 {
+    /**
+     * @var Connection
+     */
+    private $connection;
+
     /**
      * @var ContractResolver
      */
@@ -34,22 +40,26 @@ class DbalPersistence implements Persistence
     private $metadataSerializer;
 
     /**
-     * @param $connection
-     * @param $tableName
-     * @param $eventSerializer
-     * @param $metadataSerializer
-     * @param $eventContractResolver
-     * @param $metadataContractResolver
+     * @var string
+     */
+    private $tableName;
+
+    /**
+     * @param Connection $connection
+     * @param Serializer $eventSerializer
+     * @param Serializer $metadataSerializer
+     * @param ContractResolver$eventContractResolver
+     * @param ContractResolver$metadataContractResolver
+     * @param string $tableName
      */
     public function __construct(
         Connection $connection,
-        $tableName = 'event',
         Serializer $eventSerializer,
         Serializer $metadataSerializer,
         ContractResolver $eventContractResolver,
-        ContractResolver $metadataContractResolver
-    )
-    {
+        ContractResolver $metadataContractResolver,
+        $tableName = 'event'
+    ) {
         $this->connection = $connection;
         $this->tableName = $tableName;
         $this->eventSerializer = $eventSerializer;
@@ -109,29 +119,34 @@ class DbalPersistence implements Persistence
         $eventEnvelopes = [];
 
         $result = $this->findByAggregateTypeAndId($aggregateType, $aggregateId);
-//print_r($result); die();
+
         while ($record = $result->fetch()) {
-            //print_r($record);
-            $event = json_decode($record['event'], TRUE);
+            $event = json_decode($record['event'], true);
             $metadata = $record['metadata_type']
-                ? json_decode($record['metadata'], TRUE)
-                : null;
+                ? json_decode($record['metadata'], true)
+                : null
+            ;
 
             $eventType = $this->eventContractResolver->resolveFromContractName($record['event_type']);
             $metadataType = $record['metadata_type']
                 ? $this->metadataContractResolver->resolveFromContractName($record['metadata_type'])
-                : null;
+                : null
+            ;
+
+            $metadata = $metadata
+                ? $this->metadataSerializer->deserialize($metadataType, $metadata)
+                : null
+            ;
+
 
             $eventEnvelopes[] = new EventEnvelope(
                 $eventType,
                 $record['event_id'],
                 $this->eventSerializer->deserialize($eventType, $event),
+                $record['aggregate_version'],
                 $metadataType,
                 $metadata
-                    ? $this->metadataSerializer->deserialize($metadataType, metadata)
-                    : null
             );
-
         }
 
         return $eventEnvelopes;
@@ -150,17 +165,21 @@ class DbalPersistence implements Persistence
         $aggregateId,
         $expectedAggregateVersion,
         array $eventEnvelopes
-    )
-    {
-        $aggregateVersion = $expectedAggregateVersion;
+    ) {
+        $aggregateVersion = $this->versionFor($aggregateType, $aggregateId);
 
-        // Todo: Add transaction / rollback on exception
+        if ($aggregateVersion !== $expectedAggregateVersion) {
+            throw new OptimisticConcurrencyFailed();
+        }
 
         $utcCommittedTime = new \DateTimeImmutable('now');
 
         foreach ($eventEnvelopes as $eventEnvelope) {
-
-            $values = array(
+            $metadata = $eventEnvelope->getMetadataType()
+                ? json_encode($this->metadataSerializer->serialize($eventEnvelope->getMetadataType(), $eventEnvelope->getMetadata()))
+                : null
+            ;
+            $values = [
                 'commit_id' => $commitId,
                 'utc_committed_time' => $utcCommittedTime->format('Y-m-d H:i:s'),
                 'aggregate_type' => $aggregateType->getContractName(),
@@ -172,12 +191,8 @@ class DbalPersistence implements Persistence
                 'metadata_type' => $eventEnvelope->getMetadataType()
                     ? $eventEnvelope->getMetadataType()->getContractName()
                     : null,
-                'metadata' => (
-                $eventEnvelope->getMetadataType()
-                    ? json_encode($this->metadataSerializer->serialize($eventEnvelope->getMetadataType(), $eventEnvelope->getMetadata()))
-                    : null
-                )
-            );
+                'metadata' => $metadata,
+            ];
             $this->connection->insert($this->tableName, $values);
 
         }
@@ -190,7 +205,20 @@ class DbalPersistence implements Persistence
         $statement->bindValue('aggregateType', $aggregateType->getContractName());
         $statement->bindValue('aggregateId', $aggregateId);
         $statement->execute();
-        //$result = $statement->fetch();
+
         return $statement;
+    }
+
+    private function versionFor(Contract $aggregateType, $aggregateId)
+    {
+        $version = -1;
+
+        foreach ($this->findByAggregateTypeAndId($aggregateType, $aggregateId) as $row) {
+            if ($row['aggregate_version'] > $version) {
+                $version = $row['aggregate_version'];
+            }
+        }
+
+        return (int) $version;
     }
 }
