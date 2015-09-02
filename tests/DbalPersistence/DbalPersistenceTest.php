@@ -6,8 +6,8 @@ use Doctrine\DBAL\Portability\Connection;
 use Doctrine\DBAL\DriverManager;
 use Monii\AggregateEventStorage\EventStore\Persistence\PersistenceTest;
 use Monii\AggregateEventStorage\Contract\SimplePhpFqcnContractResolver;
-use Monii\AggregateEventStorage\EventStore\Serialization\Adapter\PropertiesReflection\PropertiesReflectionSerializer;
 use Monii\AggregateEventStorage\EventStore\Persistence\Adapter\Dbal\DbalPersistence;
+use Monii\AggregateEventStorage\EventStore\Serialization\Adapter\ReflectionProperties\ReflectionPropertiesSerializer;
 
 class DbalPersistenceTest extends PersistenceTest
 {
@@ -15,7 +15,7 @@ class DbalPersistenceTest extends PersistenceTest
 
     protected function createPersistence()
     {
-        $serializer = new PropertiesReflectionSerializer(
+        $serializer = new ReflectionPropertiesSerializer(
             new SimplePhpFqcnContractResolver()
         );
 
@@ -28,11 +28,11 @@ class DbalPersistenceTest extends PersistenceTest
 
         $this->dbalPersistence = new DbalPersistence(
             $connection,
-            'event',
             $serializer,
             $serializer,
             $contractResolver,
-            $contractResolver
+            $contractResolver,
+            'event'
         );
         $table = $this->dbalPersistence->configureSchema($schema);
 
