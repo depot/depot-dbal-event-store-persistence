@@ -2,6 +2,7 @@
 
 namespace Monii\AggregateEventStorage\EventStore\Persistence\Adapter\Dbal;
 
+use DateTimeImmutable;
 use Monii\AggregateEventStorage\Contract\Contract;
 use Monii\AggregateEventStorage\Contract\ContractResolver;
 use Monii\AggregateEventStorage\EventStore\Persistence\OptimisticConcurrencyFailed;
@@ -106,6 +107,7 @@ class DbalPersistence implements Persistence
         $table->addColumn('event_type', 'string', $stringParams);
         $table->addColumn('event_id', $uuidType, $uuidParams);
         $table->addColumn('event', 'text');
+        $table->addColumn('when', 'datetime');
         $table->addColumn('metadata_type', 'string', array_merge($stringParams, ['notnull' => false]));
         $table->addColumn('metadata', 'text', ['notnull' => false]);
         $table->setPrimaryKey(['committed_event_id']);
@@ -138,12 +140,12 @@ class DbalPersistence implements Persistence
                 : null
             ;
 
-
             $eventEnvelopes[] = new EventEnvelope(
                 $eventType,
                 $record['event_id'],
                 $this->eventSerializer->deserialize($eventType, $event),
                 $record['aggregate_version'],
+                new DateTimeImmutable($record['when']),
                 $metadataType,
                 $metadata
             );
@@ -188,6 +190,7 @@ class DbalPersistence implements Persistence
                 'event_type' => $eventEnvelope->getEventType()->getContractName(),
                 'event_id' => $eventEnvelope->getEventId(),
                 'event' => json_encode($this->eventSerializer->serialize($eventEnvelope->getEventType(), $eventEnvelope->getEvent())),
+                '`when`' => $eventEnvelope->getWhen()->format('Y-m-d H:i:s'),
                 'metadata_type' => $eventEnvelope->getMetadataType()
                     ? $eventEnvelope->getMetadataType()->getContractName()
                     : null,
