@@ -1,15 +1,15 @@
 <?php
 
-namespace Monii\AggregateEventStorage\EventStore\Persistence\Adapter\Dbal;
+namespace Depot\EventStore\Persistence\Adapter\Dbal;
 
 use DateTimeImmutable;
-use Monii\AggregateEventStorage\Contract\Contract;
-use Monii\AggregateEventStorage\Contract\ContractResolver;
-use Monii\AggregateEventStorage\EventStore\Persistence\OptimisticConcurrencyFailed;
-use Monii\AggregateEventStorage\EventStore\Transaction\CommitId;
-use Monii\AggregateEventStorage\EventStore\EventEnvelope;
-use Monii\AggregateEventStorage\EventStore\Serialization\Serializer;
-use Monii\AggregateEventStorage\EventStore\Persistence\Persistence;
+use Depot\Contract\Contract;
+use Depot\Contract\ContractResolver;
+use Depot\EventStore\Persistence\OptimisticConcurrencyFailed;
+use Depot\EventStore\Transaction\CommitId;
+use Depot\EventStore\EventEnvelope;
+use Depot\EventStore\Serialization\Serializer;
+use Depot\EventStore\Persistence\Persistence;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Connection;
 

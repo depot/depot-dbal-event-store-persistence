@@ -1,13 +1,13 @@
 <?php
 
-namespace Monii\AggregateEventStorage\EventStore\Persistence\Adapter\Dbal;
+namespace Depot\Testing\Integration\EventStore\Persistence\Adapter\Dbal;
 
 use Doctrine\DBAL\Portability\Connection;
 use Doctrine\DBAL\DriverManager;
-use Monii\AggregateEventStorage\EventStore\Persistence\PersistenceTest;
-use Monii\AggregateEventStorage\Contract\SimplePhpFqcnContractResolver;
-use Monii\AggregateEventStorage\EventStore\Persistence\Adapter\Dbal\DbalPersistence;
-use Monii\AggregateEventStorage\EventStore\Serialization\Adapter\ReflectionProperties\ReflectionPropertiesSerializer;
+use Depot\Testing\EventStore\Persistence\PersistenceTest;
+use Depot\Contract\SimplePhpFqcnContractResolver;
+use Depot\EventStore\Persistence\Adapter\Dbal\DbalPersistence;
+use Depot\EventStore\Serialization\Adapter\MoniiReflectionPropertiesSerializer\MoniiReflectionPropertiesSerializer;
 
 class DbalPersistenceTest extends PersistenceTest
 {
@@ -15,7 +15,7 @@ class DbalPersistenceTest extends PersistenceTest
 
     protected function createPersistence()
     {
-        $serializer = new ReflectionPropertiesSerializer(
+        $serializer = new MoniiReflectionPropertiesSerializer(
             new SimplePhpFqcnContractResolver()
         );
 

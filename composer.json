@@ -1,41 +1,52 @@
 {
-    "name": "monii/aggregate-event-storage-dbal",
-    "description": "Doctrine DBAL implementation of Monii's Aggregate Event Storage",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "Beau Simensen",
-            "email": "beau@dflydev.com"
-        }
-    ],
-    "require": {
-        "doctrine/dbal": "^2.5",
-        "monii/aggregate-event-storage": "^0.0@dev"
+  "name": "depot/dbal-event-store-persistence",
+  "description": "Doctrine DBAL implementation of Depot's Event Store Persistence",
+  "license": "MIT",
+  "homepage": "http://depot.io",
+  "authors": [
+    {
+      "name": "monii.io",
+      "email": "team@monii.com"
     },
-    "autoload": {
-        "psr-4": {
-            "Monii\\AggregateEventStorage\\EventStore\\Persistence\\Adapter\\Dbal\\": "src"
-        }
+    {
+      "name": "Beau Simensen",
+      "email": "beau.simensen@monii.com"
     },
-    "require-dev": {
-        "phpunit/phpunit": "^4.7",
-        "squizlabs/php_codesniffer": "^2.3",
-        "monii/aggregate-event-storage-testing": "^0.0@dev",
-        "monii/reflection-properties-serializer": "@dev"
+    {
+      "name": "Steve Marks",
+      "email": "steve.marks@monii.com"
     },
-    "repositories": {
-        "monii-aggregate-event-storage": {
-            "type": "vcs",
-            "url": "https://github.com/monii/monii-aggregate-event-storage"
-        },
-        "monii-aggregate-event-storage-testing": {
-            "type": "vcs",
-            "url": "https://github.com/monii/monii-aggregate-event-storage-testing"
-        }
-    },
-    "extra": {
-        "branch-alias": {
-            "dev-master": "0.0.x-dev"
-        }
+    {
+      "name": "Alec Charlton",
+      "email": "alec.charlton@monii.com"
     }
+  ],
+  "require": {
+    "depot/event-store": "^0.0@dev",
+    "doctrine/dbal": "^2.5"
+  },
+  "autoload": {
+    "psr-4": {
+      "Depot\\EventStore\\Persistence\\Adapter\\Dbal\\": "src"
+    }
+  },
+  "require-dev": {
+    "depot/contract": "^0.0@dev",
+    "depot/testing-event-store-persistence": "^0.0@dev",
+    "depot/testing-fixtures": "^0.0@dev",
+    "depot/monii-reflection-properties-serializer-event-store-serialization": "^0.0@dev",
+    "monii/reflection-properties-serializer": "@dev",
+    "phpunit/phpunit": "^4.7",
+    "squizlabs/php_codesniffer": "^2.3"
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Depot\\Testing\\Integration\\EventStore\\Persistence\\Adapter\\Dbal\\": "tests/integration"
+    }
+  },
+  "extra": {
+    "branch-alias": {
+      "dev-master": "0.0.x-dev"
+    }
+  }
 }
