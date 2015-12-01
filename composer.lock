@@ -4,8 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "bb702e5d10d890a88ff976b845f9f1f5",
-    "content-hash": "2c5280ac98cb4c3b96224b792cf97aa5",
+    "hash": "83303837a70d872b98776de9a26be66c",
+    "content-hash": "8ae181f893fa5d1f2ebe53736a75c108",
     "packages": [
         {
             "name": "depot/contract",
@@ -1854,8 +1854,8 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
-        "depot/event-store": 20,
         "depot/contract": 20,
+        "depot/event-store": 20,
         "depot/testing-event-store-persistence": 20,
         "depot/testing-fixtures": 20,
         "depot/monii-reflection-properties-serializer-event-store-serialization": 20,
