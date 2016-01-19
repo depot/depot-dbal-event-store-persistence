@@ -180,7 +180,12 @@ class DbalPersistence implements Persistence
 
         foreach ($eventEnvelopes as $eventEnvelope) {
             $metadata = $eventEnvelope->getMetadataType()
-                ? json_encode($this->metadataSerializer->serialize($eventEnvelope->getMetadataType(), $eventEnvelope->getMetadata()))
+                ? json_encode(
+                    $this->metadataSerializer->serialize(
+                        $eventEnvelope->getMetadataType(),
+                        $eventEnvelope->getMetadata()
+                    )
+                )
                 : null
             ;
             $values = [
@@ -191,7 +196,12 @@ class DbalPersistence implements Persistence
                 'aggregate_version' => ++$aggregateRootVersion,
                 'event_type' => $eventEnvelope->getEventType()->getContractName(),
                 'event_id' => $eventEnvelope->getEventId(),
-                'event' => json_encode($this->eventSerializer->serialize($eventEnvelope->getEventType(), $eventEnvelope->getEvent())),
+                'event' => json_encode(
+                    $this->eventSerializer->serialize(
+                        $eventEnvelope->getEventType(),
+                        $eventEnvelope->getEvent()
+                    )
+                ),
                 '`when`' => $eventEnvelope->getWhen()->format('Y-m-d H:i:s'),
                 'metadata_type' => $eventEnvelope->getMetadataType()
                     ? $eventEnvelope->getMetadataType()->getContractName()
@@ -205,7 +215,9 @@ class DbalPersistence implements Persistence
 
     private function findByaggregateRootTypeAndId($aggregateRootType, $aggregateRootId)
     {
-        $query = "SELECT * FROM ".$this->tableName." WHERE aggregate_type = :aggregateRootType AND aggregate_id = :aggregateRootId ORDER BY aggregate_version";
+        $query = "SELECT * FROM "
+            .$this->tableName.
+            " WHERE aggregate_type = :aggregateRootType AND aggregate_id = :aggregateRootId ORDER BY aggregate_version";
         $statement = $this->connection->prepare($query);
         $statement->bindValue('aggregateRootType', $aggregateRootType->getContractName());
         $statement->bindValue('aggregateRootId', $aggregateRootId);
