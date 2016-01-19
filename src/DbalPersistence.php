@@ -116,11 +116,11 @@ class DbalPersistence implements Persistence
         return $table;
     }
 
-    public function fetch(Contract $aggregateType, $aggregateId)
+    public function fetch(Contract $aggregateRootType, $aggregateRootId)
     {
         $eventEnvelopes = [];
 
-        $result = $this->findByAggregateTypeAndId($aggregateType, $aggregateId);
+        $result = $this->findByaggregateRootTypeAndId($aggregateRootType, $aggregateRootId);
 
         while ($record = $result->fetch()) {
             $event = json_decode($record['event'], true);
@@ -141,6 +141,8 @@ class DbalPersistence implements Persistence
             ;
 
             $eventEnvelopes[] = new EventEnvelope(
+                $aggregateRootType,
+                $aggregateRootId,
                 $eventType,
                 $record['event_id'],
                 $this->eventSerializer->deserialize($eventType, $event),
@@ -156,21 +158,21 @@ class DbalPersistence implements Persistence
 
     /**
      * @param CommitId $commitId
-     * @param Contract $aggregateType
-     * @param string $aggregateId
-     * @param int $expectedAggregateVersion
+     * @param Contract $aggregateRootType
+     * @param string $aggregateRootId
+     * @param int $expectedAggregateRootVersion
      * @param EventEnvelope[] $eventEnvelopes
      */
     public function commit(
         CommitId $commitId,
-        Contract $aggregateType,
-        $aggregateId,
-        $expectedAggregateVersion,
+        Contract $aggregateRootType,
+        $aggregateRootId,
+        $expectedAggregateRootVersion,
         array $eventEnvelopes
     ) {
-        $aggregateVersion = $this->versionFor($aggregateType, $aggregateId);
+        $aggregateRootVersion = $this->versionFor($aggregateRootType, $aggregateRootId);
 
-        if ($aggregateVersion !== $expectedAggregateVersion) {
+        if ($aggregateRootVersion !== $expectedAggregateRootVersion) {
             throw new OptimisticConcurrencyFailed();
         }
 
@@ -178,18 +180,28 @@ class DbalPersistence implements Persistence
 
         foreach ($eventEnvelopes as $eventEnvelope) {
             $metadata = $eventEnvelope->getMetadataType()
-                ? json_encode($this->metadataSerializer->serialize($eventEnvelope->getMetadataType(), $eventEnvelope->getMetadata()))
+                ? json_encode(
+                    $this->metadataSerializer->serialize(
+                        $eventEnvelope->getMetadataType(),
+                        $eventEnvelope->getMetadata()
+                    )
+                )
                 : null
             ;
             $values = [
                 'commit_id' => $commitId,
                 'utc_committed_time' => $utcCommittedTime->format('Y-m-d H:i:s'),
-                'aggregate_type' => $aggregateType->getContractName(),
-                'aggregate_id' => $aggregateId,
-                'aggregate_version' => ++$aggregateVersion,
+                'aggregate_type' => $aggregateRootType->getContractName(),
+                'aggregate_id' => $aggregateRootId,
+                'aggregate_version' => ++$aggregateRootVersion,
                 'event_type' => $eventEnvelope->getEventType()->getContractName(),
                 'event_id' => $eventEnvelope->getEventId(),
-                'event' => json_encode($this->eventSerializer->serialize($eventEnvelope->getEventType(), $eventEnvelope->getEvent())),
+                'event' => json_encode(
+                    $this->eventSerializer->serialize(
+                        $eventEnvelope->getEventType(),
+                        $eventEnvelope->getEvent()
+                    )
+                ),
                 '`when`' => $eventEnvelope->getWhen()->format('Y-m-d H:i:s'),
                 'metadata_type' => $eventEnvelope->getMetadataType()
                     ? $eventEnvelope->getMetadataType()->getContractName()
@@ -201,22 +213,24 @@ class DbalPersistence implements Persistence
         }
     }
 
-    private function findByAggregateTypeAndId($aggregateType, $aggregateId)
+    private function findByaggregateRootTypeAndId($aggregateRootType, $aggregateRootId)
     {
-        $query = "SELECT * FROM ".$this->tableName." WHERE aggregate_type = :aggregateType AND aggregate_id = :aggregateId ORDER BY aggregate_version";
+        $query = "SELECT * FROM "
+            .$this->tableName.
+            " WHERE aggregate_type = :aggregateRootType AND aggregate_id = :aggregateRootId ORDER BY aggregate_version";
         $statement = $this->connection->prepare($query);
-        $statement->bindValue('aggregateType', $aggregateType->getContractName());
-        $statement->bindValue('aggregateId', $aggregateId);
+        $statement->bindValue('aggregateRootType', $aggregateRootType->getContractName());
+        $statement->bindValue('aggregateRootId', $aggregateRootId);
         $statement->execute();
 
         return $statement;
     }
 
-    private function versionFor(Contract $aggregateType, $aggregateId)
+    private function versionFor(Contract $aggregateRootType, $aggregateRootId)
     {
         $version = -1;
 
-        $result = $this->findByAggregateTypeAndId($aggregateType, $aggregateId);
+        $result = $this->findByaggregateRootTypeAndId($aggregateRootType, $aggregateRootId);
 
         while ($row = $result->fetch()) {
             if ($row['aggregate_version'] > $version) {
