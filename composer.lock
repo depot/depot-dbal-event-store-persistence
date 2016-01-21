@@ -68,12 +68,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/depot/depot-event-store.git",
-                "reference": "c6ec8a0bfd41d7a2b5e3afcd8ccb9774c3fc9b7e"
+                "reference": "2056965e107068db371b37722964aa4b5d8df51c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/depot/depot-event-store/zipball/c6ec8a0bfd41d7a2b5e3afcd8ccb9774c3fc9b7e",
-                "reference": "c6ec8a0bfd41d7a2b5e3afcd8ccb9774c3fc9b7e",
+                "url": "https://api.github.com/repos/depot/depot-event-store/zipball/2056965e107068db371b37722964aa4b5d8df51c",
+                "reference": "2056965e107068db371b37722964aa4b5d8df51c",
                 "shasum": ""
             },
             "require": {
@@ -122,7 +122,7 @@
             ],
             "description": "Depot Event Store",
             "homepage": "http://depot.io",
-            "time": "2016-01-19 16:13:11"
+            "time": "2016-01-21 11:31:03"
         },
         {
             "name": "doctrine/annotations",
@@ -662,12 +662,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/depot/depot-testing-event-store-persistence.git",
-                "reference": "8b3cf513721fac6dc1b73d0dabf0d77009947820"
+                "reference": "5613919380718d339cccd4e7301d5307350d11d8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/depot/depot-testing-event-store-persistence/zipball/8b3cf513721fac6dc1b73d0dabf0d77009947820",
-                "reference": "8b3cf513721fac6dc1b73d0dabf0d77009947820",
+                "url": "https://api.github.com/repos/depot/depot-testing-event-store-persistence/zipball/5613919380718d339cccd4e7301d5307350d11d8",
+                "reference": "5613919380718d339cccd4e7301d5307350d11d8",
                 "shasum": ""
             },
             "require": {
@@ -710,7 +710,7 @@
             ],
             "description": "Testing support for Depot Event Store Persistence implementations",
             "homepage": "http://depot.io",
-            "time": "2016-01-19 15:43:03"
+            "time": "2016-01-21 14:39:46"
         },
         {
             "name": "depot/testing-fixtures",
