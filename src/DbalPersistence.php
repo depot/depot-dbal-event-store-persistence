@@ -255,7 +255,7 @@ class DbalPersistence implements Persistence, EventStoreManagement
         return new CommittedEvent(
             CommitId::fromString($row['commit_id']),
             DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $row['utc_committed_time']),
-            new Contract($row['aggregate_root_type'], str_replace('.','\\',$row['aggregate_root_type'])),
+            new Contract($row['aggregate_root_type'], str_replace('.', '\\', $row['aggregate_root_type'])),
             $row['aggregate_root_id'],
             (int) $row['aggregate_root_version'],
             new EventEnvelope(
@@ -285,7 +285,8 @@ class DbalPersistence implements Persistence, EventStoreManagement
 
     private function prepareVisitCommittedEventsStatement(Criteria $criteria)
     {
-        list ($where, $bindValues, $bindValueTypes) = $this->prepareVisitCommittedEventsStatementWhereAndBindValues($criteria);
+        list ($where, $bindValues, $bindValueTypes) =
+            $this->prepareVisitCommittedEventsStatementWhereAndBindValues($criteria);
         $query = 'SELECT *
             FROM ' . $this->tableName . '
             ' . $where . '
@@ -305,7 +306,7 @@ class DbalPersistence implements Persistence, EventStoreManagement
 
         if ($criteria->getAggregateRootTypes()) {
             $criteriaTypes[] = 'aggregate_root_type IN (:aggregateRootTypes)';
-            $aggregateRootTypeContractNames = array_map( function (Contract $aggregateRootType){
+            $aggregateRootTypeContractNames = array_map(function (Contract $aggregateRootType) {
                 return $aggregateRootType->getContractName();
             }, $criteria->getAggregateRootTypes());
             $bindValues['aggregateRootTypes'] = $aggregateRootTypeContractNames;
@@ -320,7 +321,7 @@ class DbalPersistence implements Persistence, EventStoreManagement
 
         if ($criteria->getEventTypes()) {
             $criteriaTypes[] = 'event_type IN (:eventTypes)';
-            $eventTypeContractNames = array_map( function (Contract $eventType){
+            $eventTypeContractNames = array_map(function (Contract $eventType) {
                 return $eventType->getContractName();
             }, $criteria->getEventTypes());
             $bindValues['eventTypes'] = $eventTypeContractNames;

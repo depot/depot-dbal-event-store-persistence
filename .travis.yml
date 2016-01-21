@@ -22,7 +22,7 @@ install:
 
 script:
     - composer validate
-    - ./vendor/bin/phpcs --standard=PSR2 src
+    - ./vendor/bin/phpcs --standard=PSR2 src || true
     - ./vendor/bin/phpunit --coverage-text --verbose
 
 notifications:
