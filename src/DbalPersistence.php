@@ -266,7 +266,12 @@ class DbalPersistence implements Persistence, EventStoreManagement
                     json_decode($row['event'], true)
                 ),
                 (int) $row['event_version'],
-                DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $row['when'])
+                DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $row['when']),
+                $this->metadataContractResolver->resolveFromContractName($row['metadata_type']),
+                $this->eventSerializer->deserialize(
+                    $this->metadataContractResolver->resolveFromContractName($row['metadata_type']),
+                    json_decode($row['metadata'], true)
+                )
             )
         );
     }
