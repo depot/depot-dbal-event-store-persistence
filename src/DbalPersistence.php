@@ -179,7 +179,15 @@ class DbalPersistence implements Persistence, EventStoreManagement
         $aggregateRootVersion = $this->versionFor($aggregateRootType, $aggregateRootId);
 
         if ($aggregateRootVersion !== $expectedAggregateRootVersion) {
-            throw new OptimisticConcurrencyFailed();
+            throw new OptimisticConcurrencyFailed(
+                $aggregateRootType->getContractName(),
+                $aggregateRootId,
+                sprintf(
+                    'Expected aggregate root version %d but found %d.',
+                    $expectedAggregateRootVersion,
+                    $aggregateRootVersion
+                )
+            );
         }
 
         if (! $now) {
@@ -226,7 +234,16 @@ class DbalPersistence implements Persistence, EventStoreManagement
         } catch (\Exception $e) {
             $this->connection->rollBack();
 
-            throw $e;
+            if ($e instanceof \Doctrine\DBAL\DBALException) {
+                if ($e->getPrevious() && in_array($e->getPrevious()->getCode(), [23000, 23050])) {
+                    throw new OptimisticConcurrencyFailed(
+                        $aggregateRootType->getContractName(),
+                        $aggregateRootId,
+                        'Duplicate event version.',
+                        $e
+                    );
+                }
+            }
         }
     }
 
