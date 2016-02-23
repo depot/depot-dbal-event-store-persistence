@@ -5,7 +5,6 @@
         "This file is @generated automatically"
     ],
     "hash": "83303837a70d872b98776de9a26be66c",
-    "content-hash": "8ae181f893fa5d1f2ebe53736a75c108",
     "packages": [
         {
             "name": "depot/contract",
@@ -68,12 +67,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/depot/depot-event-store.git",
-                "reference": "2056965e107068db371b37722964aa4b5d8df51c"
+                "reference": "3e0c8e401d49954f47266725d10a8373a2f0c0f5"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/depot/depot-event-store/zipball/2056965e107068db371b37722964aa4b5d8df51c",
-                "reference": "2056965e107068db371b37722964aa4b5d8df51c",
+                "url": "https://api.github.com/repos/depot/depot-event-store/zipball/3e0c8e401d49954f47266725d10a8373a2f0c0f5",
+                "reference": "3e0c8e401d49954f47266725d10a8373a2f0c0f5",
                 "shasum": ""
             },
             "require": {
@@ -122,7 +121,7 @@
             ],
             "description": "Depot Event Store",
             "homepage": "http://depot.io",
-            "time": "2016-01-21 11:31:03"
+            "time": "2016-02-23 11:23:36"
         },
         {
             "name": "doctrine/annotations",
