@@ -186,39 +186,47 @@ class DbalPersistence implements Persistence, EventStoreManagement
             $now = new \DateTimeImmutable('now');
         }
 
-        foreach ($eventEnvelopes as $eventEnvelope) {
-            $metadata = $eventEnvelope->getMetadataType()
-                ? json_encode(
-                    $this->metadataSerializer->serialize(
-                        $eventEnvelope->getMetadataType(),
-                        $eventEnvelope->getMetadata()
-                    )
-                )
-                : null
-            ;
-            $values = [
-                'commit_id' => $commitId,
-                'utc_committed_time' => $now->format('Y-m-d H:i:s'),
-                'aggregate_root_type' => $aggregateRootType->getContractName(),
-                'aggregate_root_id' => $aggregateRootId,
-                'aggregate_root_version' => $aggregateRootVersion,
-                'event_type' => $eventEnvelope->getEventType()->getContractName(),
-                'event_id' => $eventEnvelope->getEventId(),
-                'event' => json_encode(
-                    $this->eventSerializer->serialize(
-                        $eventEnvelope->getEventType(),
-                        $eventEnvelope->getEvent()
-                    )
-                ),
-                'event_version' => $eventEnvelope->getVersion(),
-                '`when`' => $eventEnvelope->getWhen()->format('Y-m-d H:i:s'),
-                'metadata_type' => $eventEnvelope->getMetadataType()
-                    ? $eventEnvelope->getMetadataType()->getContractName()
-                    : null,
-                'metadata' => $metadata,
-            ];
-            $this->connection->insert($this->tableName, $values);
+        $this->connection->beginTransaction();
 
+        try {
+            foreach ($eventEnvelopes as $eventEnvelope) {
+                $metadata = $eventEnvelope->getMetadataType()
+                    ? json_encode(
+                        $this->metadataSerializer->serialize(
+                            $eventEnvelope->getMetadataType(),
+                            $eventEnvelope->getMetadata()
+                        )
+                    )
+                    : null;
+                $values = [
+                    'commit_id' => $commitId,
+                    'utc_committed_time' => $now->format('Y-m-d H:i:s'),
+                    'aggregate_root_type' => $aggregateRootType->getContractName(),
+                    'aggregate_root_id' => $aggregateRootId,
+                    'aggregate_root_version' => $aggregateRootVersion,
+                    'event_type' => $eventEnvelope->getEventType()->getContractName(),
+                    'event_id' => $eventEnvelope->getEventId(),
+                    'event' => json_encode(
+                        $this->eventSerializer->serialize(
+                            $eventEnvelope->getEventType(),
+                            $eventEnvelope->getEvent()
+                        )
+                    ),
+                    'event_version' => $eventEnvelope->getVersion(),
+                    '`when`' => $eventEnvelope->getWhen()->format('Y-m-d H:i:s'),
+                    'metadata_type' => $eventEnvelope->getMetadataType()
+                        ? $eventEnvelope->getMetadataType()->getContractName()
+                        : null,
+                    'metadata' => $metadata,
+                ];
+                $this->connection->insert($this->tableName, $values);
+            }
+
+            $this->connection->commit();
+        } catch (\Exception $e) {
+            $this->connection->rollBack();
+
+            throw $e;
         }
     }
 
