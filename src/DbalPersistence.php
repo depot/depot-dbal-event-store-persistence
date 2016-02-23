@@ -117,6 +117,7 @@ class DbalPersistence implements Persistence, EventStoreManagement
         $table->addColumn('metadata', 'text', ['notnull' => false]);
         $table->setPrimaryKey(['committed_event_id']);
         $table->addIndex(['aggregate_root_type', 'aggregate_root_id', 'aggregate_root_version']);
+        $table->addUniqueIndex(['aggregate_root_type', 'aggregate_root_id', 'event_version']);
 
         return $table;
     }
