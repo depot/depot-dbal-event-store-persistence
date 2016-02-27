@@ -117,6 +117,7 @@ class DbalPersistence implements Persistence, EventStoreManagement
         $table->addColumn('metadata', 'text', ['notnull' => false]);
         $table->setPrimaryKey(['committed_event_id']);
         $table->addIndex(['aggregate_root_type', 'aggregate_root_id', 'aggregate_root_version']);
+        $table->addUniqueIndex(['aggregate_root_type', 'aggregate_root_id', 'event_version']);
 
         return $table;
     }
@@ -178,46 +179,71 @@ class DbalPersistence implements Persistence, EventStoreManagement
         $aggregateRootVersion = $this->versionFor($aggregateRootType, $aggregateRootId);
 
         if ($aggregateRootVersion !== $expectedAggregateRootVersion) {
-            throw new OptimisticConcurrencyFailed();
+            throw new OptimisticConcurrencyFailed(
+                $aggregateRootType->getContractName(),
+                $aggregateRootId,
+                sprintf(
+                    'Expected aggregate root version %d but found %d.',
+                    $expectedAggregateRootVersion,
+                    $aggregateRootVersion
+                )
+            );
         }
 
         if (! $now) {
             $now = new \DateTimeImmutable('now');
         }
 
-        foreach ($eventEnvelopes as $eventEnvelope) {
-            $metadata = $eventEnvelope->getMetadataType()
-                ? json_encode(
-                    $this->metadataSerializer->serialize(
-                        $eventEnvelope->getMetadataType(),
-                        $eventEnvelope->getMetadata()
-                    )
-                )
-                : null
-            ;
-            $values = [
-                'commit_id' => $commitId,
-                'utc_committed_time' => $now->format('Y-m-d H:i:s'),
-                'aggregate_root_type' => $aggregateRootType->getContractName(),
-                'aggregate_root_id' => $aggregateRootId,
-                'aggregate_root_version' => $aggregateRootVersion,
-                'event_type' => $eventEnvelope->getEventType()->getContractName(),
-                'event_id' => $eventEnvelope->getEventId(),
-                'event' => json_encode(
-                    $this->eventSerializer->serialize(
-                        $eventEnvelope->getEventType(),
-                        $eventEnvelope->getEvent()
-                    )
-                ),
-                'event_version' => $eventEnvelope->getVersion(),
-                '`when`' => $eventEnvelope->getWhen()->format('Y-m-d H:i:s'),
-                'metadata_type' => $eventEnvelope->getMetadataType()
-                    ? $eventEnvelope->getMetadataType()->getContractName()
-                    : null,
-                'metadata' => $metadata,
-            ];
-            $this->connection->insert($this->tableName, $values);
+        $this->connection->beginTransaction();
 
+        try {
+            foreach ($eventEnvelopes as $eventEnvelope) {
+                $metadata = $eventEnvelope->getMetadataType()
+                    ? json_encode(
+                        $this->metadataSerializer->serialize(
+                            $eventEnvelope->getMetadataType(),
+                            $eventEnvelope->getMetadata()
+                        )
+                    )
+                    : null;
+                $values = [
+                    'commit_id' => $commitId,
+                    'utc_committed_time' => $now->format('Y-m-d H:i:s'),
+                    'aggregate_root_type' => $aggregateRootType->getContractName(),
+                    'aggregate_root_id' => $aggregateRootId,
+                    'aggregate_root_version' => $aggregateRootVersion,
+                    'event_type' => $eventEnvelope->getEventType()->getContractName(),
+                    'event_id' => $eventEnvelope->getEventId(),
+                    'event' => json_encode(
+                        $this->eventSerializer->serialize(
+                            $eventEnvelope->getEventType(),
+                            $eventEnvelope->getEvent()
+                        )
+                    ),
+                    'event_version' => $eventEnvelope->getVersion(),
+                    '`when`' => $eventEnvelope->getWhen()->format('Y-m-d H:i:s'),
+                    'metadata_type' => $eventEnvelope->getMetadataType()
+                        ? $eventEnvelope->getMetadataType()->getContractName()
+                        : null,
+                    'metadata' => $metadata,
+                ];
+                $this->connection->insert($this->tableName, $values);
+            }
+
+            $this->connection->commit();
+        } catch (\Exception $e) {
+            $this->connection->rollBack();
+
+            if ($e instanceof \Doctrine\DBAL\DBALException) {
+                if ($e->getPrevious() && in_array($e->getPrevious()->getCode(), [23000, 23050])) {
+                    throw new OptimisticConcurrencyFailed(
+                        $aggregateRootType->getContractName(),
+                        $aggregateRootId,
+                        'Duplicate event version.',
+                        $e
+                    );
+                }
+            }
         }
     }
 
