@@ -8,11 +8,13 @@ use Depot\Contract\ContractResolver;
 use Depot\EventStore\CommittedEventVisitor;
 use Depot\EventStore\Management\Criteria;
 use Depot\EventStore\Management\EventStoreManagement;
+use Depot\EventStore\Management\RawEventStoreManagement;
 use Depot\EventStore\Persistence\CommittedEvent;
 use Depot\EventStore\Persistence\OptimisticConcurrencyFailed;
-use Depot\EventStore\Raw\RawCommittedEvent;
-use Depot\EventStore\Raw\RawCommittedEventVisitor;
-use Depot\EventStore\Raw\RawEventEnvelope;
+use Depot\EventStore\Persistence\RawPersistence;
+use Depot\EventStore\RawCommittedEvent;
+use Depot\EventStore\RawCommittedEventVisitor;
+use Depot\EventStore\RawEventEnvelope;
 use Depot\EventStore\Transaction\CommitId;
 use Depot\EventStore\EventEnvelope;
 use Depot\EventStore\Serialization\Serializer;
@@ -20,7 +22,7 @@ use Depot\EventStore\Persistence\Persistence;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Connection;
 
-class DbalPersistence implements Persistence, EventStoreManagement
+class DbalPersistence implements Persistence, EventStoreManagement, RawEventStoreManagement, RawPersistence
 {
     /**
      * @var Connection
@@ -163,6 +165,39 @@ class DbalPersistence implements Persistence, EventStoreManagement
         return $eventEnvelopes;
     }
 
+    public function fetchRaw(Contract $aggregateRootType, $aggregateRootId)
+    {
+        $eventEnvelopes = [];
+
+        $result = $this->findByaggregateRootTypeAndId($aggregateRootType, $aggregateRootId);
+
+        while ($record = $result->fetch()) {
+            $event = json_decode($record['event'], true);
+            $metadata = $record['metadata_type']
+                ? json_decode($record['metadata'], true)
+                : null
+            ;
+
+            $eventType = $this->eventContractResolver->resolveFromContractName($record['event_type']);
+            $metadataType = $record['metadata_type']
+                ? $this->metadataContractResolver->resolveFromContractName($record['metadata_type'])
+                : null
+            ;
+
+            $eventEnvelopes[] = new RawEventEnvelope(
+                $eventType,
+                $record['event_id'],
+                $event,
+                (int) $record['event_version'],
+                new DateTimeImmutable($record['when']),
+                $metadataType,
+                $metadata
+            );
+        }
+
+        return $eventEnvelopes;
+    }
+
     /**
      * @param CommitId $commitId
      * @param Contract $aggregateRootType
@@ -250,6 +285,83 @@ class DbalPersistence implements Persistence, EventStoreManagement
         }
     }
 
+    /**
+     * @param CommitId $commitId
+     * @param Contract $aggregateRootType
+     * @param string $aggregateRootId
+     * @param int $expectedAggregateRootVersion
+     * @param RawEventEnvelope[] $eventEnvelopes
+     * @param DateTimeImmutable|null $now
+     */
+    public function commitRaw(
+        CommitId $commitId,
+        Contract $aggregateRootType,
+        $aggregateRootId,
+        $expectedAggregateRootVersion,
+        array $eventEnvelopes,
+        $now = null
+    ) {
+        $aggregateRootVersion = $this->versionFor($aggregateRootType, $aggregateRootId);
+
+        if ($aggregateRootVersion !== $expectedAggregateRootVersion) {
+            throw new OptimisticConcurrencyFailed(
+                $aggregateRootType->getContractName(),
+                $aggregateRootId,
+                sprintf(
+                    'Expected aggregate root version %d but found %d.',
+                    $expectedAggregateRootVersion,
+                    $aggregateRootVersion
+                )
+            );
+        }
+
+        if (! $now) {
+            $now = new \DateTimeImmutable('now');
+        }
+
+        $this->connection->beginTransaction();
+
+        try {
+            foreach ($eventEnvelopes as $eventEnvelope) {
+                $metadata = $eventEnvelope->getMetadataType()
+                    ? json_encode($eventEnvelope->getMetadata())
+                    : null;
+                $values = [
+                    'commit_id' => $commitId,
+                    'utc_committed_time' => $now->format('Y-m-d H:i:s'),
+                    'aggregate_root_type' => $aggregateRootType->getContractName(),
+                    'aggregate_root_id' => $aggregateRootId,
+                    'aggregate_root_version' => $aggregateRootVersion,
+                    'event_type' => $eventEnvelope->getEventType()->getContractName(),
+                    'event_id' => $eventEnvelope->getEventId(),
+                    'event' => json_encode($eventEnvelope->getEvent()),
+                    'event_version' => $eventEnvelope->getVersion(),
+                    '`when`' => $eventEnvelope->getWhen()->format('Y-m-d H:i:s'),
+                    'metadata_type' => $eventEnvelope->getMetadataType()
+                        ? $eventEnvelope->getMetadataType()->getContractName()
+                        : null,
+                    'metadata' => $metadata,
+                ];
+                $this->connection->insert($this->tableName, $values);
+            }
+
+            $this->connection->commit();
+        } catch (\Exception $e) {
+            $this->connection->rollBack();
+
+            if ($e instanceof \Doctrine\DBAL\DBALException) {
+                if ($e->getPrevious() && in_array($e->getPrevious()->getCode(), [23000, 23050])) {
+                    throw new OptimisticConcurrencyFailed(
+                        $aggregateRootType->getContractName(),
+                        $aggregateRootId,
+                        'Duplicate event version.',
+                        $e
+                    );
+                }
+            }
+        }
+    }
+
     private function findByAggregateRootTypeAndId($aggregateRootType, $aggregateRootId)
     {
         $query = "SELECT * FROM "
@@ -305,32 +417,14 @@ class DbalPersistence implements Persistence, EventStoreManagement
         );
     }
 
-    public function visitCommittedEvents(
-        Criteria $criteria,
-        CommittedEventVisitor $committedEventVisitor,
-        RawCommittedEventVisitor $fallbackRawCommittedEventVisitor = null
-    ) {
+    public function visitCommittedEvents(Criteria $criteria, CommittedEventVisitor $committedEventVisitor)
+    {
         $statement = $this->prepareVisitCommittedEventsStatement($criteria);
         $statement->execute();
 
         while ($row = $statement->fetch()) {
-            $committedEvent = null;
-
-            try {
-                $committedEvent = $this->deserializeCommittedEvent($row);
-            } catch (\Exception $e) {
-                if (! $fallbackRawCommittedEventVisitor) {
-                    throw $e;
-                }
-
-                $rawCommittedEvent = $this->deserializeRawCommittedEvent($row);
-
-                $fallbackRawCommittedEventVisitor->doWithRawCommittedEvent($rawCommittedEvent);
-            }
-
-            if ($committedEvent) {
-                $committedEventVisitor->doWithCommittedEvent($committedEvent);
-            }
+            $committedEvent = $this->deserializeCommittedEvent($row);
+            $committedEventVisitor->doWithCommittedEvent($committedEvent);
         }
     }
 
