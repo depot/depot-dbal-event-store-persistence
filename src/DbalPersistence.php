@@ -10,6 +10,9 @@ use Depot\EventStore\Management\Criteria;
 use Depot\EventStore\Management\EventStoreManagement;
 use Depot\EventStore\Persistence\CommittedEvent;
 use Depot\EventStore\Persistence\OptimisticConcurrencyFailed;
+use Depot\EventStore\Raw\RawCommittedEvent;
+use Depot\EventStore\Raw\RawCommittedEventVisitor;
+use Depot\EventStore\Raw\RawEventEnvelope;
 use Depot\EventStore\Transaction\CommitId;
 use Depot\EventStore\EventEnvelope;
 use Depot\EventStore\Serialization\Serializer;
@@ -302,17 +305,67 @@ class DbalPersistence implements Persistence, EventStoreManagement
         );
     }
 
-    public function visitCommittedEvents(Criteria $criteria, CommittedEventVisitor $committedEventVisitor)
+    public function visitCommittedEvents(
+        Criteria $criteria,
+        CommittedEventVisitor $committedEventVisitor,
+        RawCommittedEventVisitor $fallbackRawCommittedEventVisitor = null
+    ) {
+        $statement = $this->prepareVisitCommittedEventsStatement($criteria);
+        $statement->execute();
+
+        while ($row = $statement->fetch()) {
+            $committedEvent = null;
+
+            try {
+                $committedEvent = $this->deserializeCommittedEvent($row);
+            } catch (\Exception $e) {
+                if (! $fallbackRawCommittedEventVisitor) {
+                    throw $e;
+                }
+
+                $rawCommittedEvent = $this->deserializeRawCommittedEvent($row);
+
+                $fallbackRawCommittedEventVisitor->doWithRawCommittedEvent($rawCommittedEvent);
+            }
+
+            if ($committedEvent) {
+                $committedEventVisitor->doWithCommittedEvent($committedEvent);
+            }
+        }
+    }
+
+    private function deserializeRawCommittedEvent($row)
+    {
+        return new RawCommittedEvent(
+            CommitId::fromString($row['commit_id']),
+            DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $row['utc_committed_time']),
+            new Contract($row['aggregate_root_type'], str_replace('.', '\\', $row['aggregate_root_type'])),
+            $row['aggregate_root_id'],
+            (int) $row['aggregate_root_version'],
+            new RawEventEnvelope(
+                $this->eventContractResolver->resolveFromContractName($row['event_type']),
+                $row['event_id'],
+                json_decode($row['event'], true),
+                (int) $row['event_version'],
+                DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $row['when']),
+                $row['metadata_type'] ? $this->metadataContractResolver->resolveFromContractName($row['metadata_type']) : null,
+                $row['metadata_type'] ? json_decode($row['metadata'], true) : null
+            )
+        );
+    }
+
+    public function visitRawCommittedEvents(Criteria $criteria, RawCommittedEventVisitor $rawCommittedEventVisitor)
     {
         $statement = $this->prepareVisitCommittedEventsStatement($criteria);
         $statement->execute();
 
         while ($row = $statement->fetch()) {
-            $committedEvent = $this->deserializeCommittedEvent($row);
+            $rawCommittedEvent = $this->deserializeRawCommittedEvent($row);
 
-            $committedEventVisitor->doWithCommittedEvent($committedEvent);
+            $rawCommittedEventVisitor->doWithRawCommittedEvent($rawCommittedEvent);
         }
     }
+
 
     private function prepareVisitCommittedEventsStatement(Criteria $criteria)
     {
