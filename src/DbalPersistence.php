@@ -273,7 +273,7 @@ class DbalPersistence implements Persistence, EventStoreManagement, RawEventStor
             $this->connection->rollBack();
 
             if ($e instanceof \Doctrine\DBAL\DBALException) {
-                if ($e->getPrevious() && in_array($e->getPrevious()->getCode(), [23000, 23050])) {
+                if ($e->getPrevious() && $e->getPrevious() && in_array($e->getPrevious()->getCode(), [23000, 23050])) {
                     throw new OptimisticConcurrencyFailed(
                         $aggregateRootType->getContractName(),
                         $aggregateRootId,
